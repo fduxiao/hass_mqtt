@@ -22,6 +22,10 @@ class DefaultFactory:
         return self.func()
 
 
+class Null:
+    """A placeholder class for default values other than None"""
+
+
 class Field:
     """
     Field over load __get__ and __set__ to manipulate the data
@@ -84,6 +88,18 @@ class Model:
         if data is None:
             data = {}
         self.data = data
+
+    def setdefault(self, key, default):
+        """set default"""
+        return self.data.setdefault(key, default)
+
+    def prop(self, key, value=Null):
+        """set a property and return self"""
+        if value is Null:  # read the property
+            return self.data.get(key, Null)
+        # set value
+        self.data[key] = value
+        return self
 
 
 class Config(Model):
