@@ -141,7 +141,7 @@ class Base(Model):
         data['object_id'] = obj_id
         self.publish(topic, data, retain, qos)
 
-    def online(self, is_online=True):
+    def online(self, is_online=True, retain=True, qos=0):
         """push availability"""
         payload = 'offline'
         if is_online:
@@ -150,7 +150,7 @@ class Base(Model):
             self.availability_payload[self.value_path] = payload
         else:
             self.availability_payload = payload
-        self.publish(self.availability_topic, self.availability_payload)
+        self.publish(self.availability_topic, self.availability_payload, retain, qos)
 
     def push_availability(self, state):
         """push availability"""

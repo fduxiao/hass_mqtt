@@ -115,21 +115,21 @@ class Device(Model):
             target.availability_template = '{{ value_json.%s }}' % key
             target.availability_payload = self.availability_payload
 
-    def send_config(self, retain=False, qos=0):
+    def send_config(self, retain=True, qos=0):
         """send config"""
         target: components.Base
         for target in self.components.values():
             target.send_config(retain, qos)
         return self
 
-    def online(self, is_online=True):
+    def online(self, is_online=True, retain=True, qos=0):
         """push availability"""
         payload = 'offline'
         if is_online:
             payload = 'online'
         for key in self.components:
             self.availability_payload[key] = payload
-        self.mqtt_client.publish(self.availability_topic, self.availability_payload)
+        self.mqtt_client.publish(self.availability_topic, self.availability_payload, retain, qos)
 
     def push_state(self, retain=False, qos=0):
         """push state"""
