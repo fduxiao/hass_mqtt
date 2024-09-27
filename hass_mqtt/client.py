@@ -113,6 +113,8 @@ class MQTTClient:
         :return: self or a decorator
         """
         # always register self
+        if isinstance(topic, str):
+            topic = topic.encode()
         self.client.subscribe(topic)
 
         def decorator(real_f=None):

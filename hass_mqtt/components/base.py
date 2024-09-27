@@ -15,13 +15,14 @@ class Base(Model):
     This class define common behaviors of a component
     """
     hass_prefix = "homeassistant"
-    component_prefix = "component"
+    default_component_name = "component"
 
     name = Field("name")
     device = Field("device")
     unique_id = Field("unique_id")
     state_topic = Field("state_topic")
     command_topic = Field("command_topic")
+    command_template = Field("command_template")
     value_template = Field("value_template")
 
     availability_template = Field("availability_template")
@@ -37,6 +38,8 @@ class Base(Model):
                  node_id=None, obj_id=None):
         super().__init__(data)
         self.mqtt_client = mqtt_client
+        if component_name is None:
+            component_name = self.default_component_name
         self.component_name = component_name
         self.node_id = node_id
         self.obj_id = obj_id
@@ -44,6 +47,10 @@ class Base(Model):
         self.value_path = None
         self.raw_value = None
         self.availability_payload = 'online'
+        self.__post_init__()
+
+    def __post_init__(self):
+        pass
 
     def set_name(self, name):
         """set name"""
@@ -70,7 +77,7 @@ class Base(Model):
         """generate a correct availability based on info of self"""
         unique_id = self.unique_id
         if self.availability_topic is None:
-            self.availability_topic = f'{self.component_prefix}/{unique_id}/state'
+            self.availability_topic = f'{self.default_component_name}/{unique_id}/state'
         if self.availability_template is None:
             self.availability_template = '{{ value_json }}'
         return self
@@ -79,14 +86,14 @@ class Base(Model):
         """generate a correct state_topic based on info of self"""
         unique_id = self.unique_id
         if self.state_topic is None:
-            self.state_topic = f'{self.component_prefix}/{unique_id}/get'
+            self.state_topic = f'{self.default_component_name}/{unique_id}/get'
         return self
 
     def make_command_topic(self):
         """generate a correct command_topic based on info of self"""
         unique_id = self.unique_id
         if self.command_topic is None:
-            self.command_topic = f'{self.component_prefix}/{unique_id}/set'
+            self.command_topic = f'{self.default_component_name}/{unique_id}/set'
         return self
 
     def make_value_source(self):
@@ -191,3 +198,17 @@ class Base(Model):
             await self.read()
             if push:
                 self.push_state()
+
+    def write(self, msg):
+        """write msg"""
+
+    def set_writer(self, func):
+        """set write"""
+        setattr(self, 'write', func)
+        return func
+
+    def on_command(self, func):
+        """This will trigger an MQTT subscribe"""
+        setattr(self, 'write', func)
+        self.mqtt_client.subscribe(self.command_topic, self.write)
+        return func

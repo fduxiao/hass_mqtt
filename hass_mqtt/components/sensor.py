@@ -2,7 +2,7 @@
 Sensor Components. See https://www.home-assistant.io/integrations/sensor.mqtt/
 """
 import time
-from .base import Base, MQTTClient, Field
+from .base import Base,  Field
 
 
 EPOCH_YEAR = time.gmtime(0)[0]
@@ -20,17 +20,14 @@ UNIX_DELTA = NTP_DELTA - 2208988800
 
 class Sensor(Base):
     """Sensor class"""
+    default_component_name = "sensor"
     default_device_class = "None"
     default_unit_of_measurement = None
 
     device_class = Field('device_class')
     unit_of_measurement = Field('unit_of_measurement')
 
-    def __init__(self, data=None, *, mqtt_client: MQTTClient = None,
-                 node_id=None, obj_id=None):
-        super().__init__(data, mqtt_client=mqtt_client,
-                         component_name="sensor",
-                         node_id=node_id, obj_id=obj_id)
+    def __post_init__(self):
         self.value = 0
 
     def default_name(self):

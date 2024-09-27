@@ -67,6 +67,18 @@ class Device(Model):
         self.availability_topic = None
         self.availability_payload = {}
 
+    def on_command(self, msg):
+        """callback of MQTT subscription"""
+        key, msg = msg.split(b';')
+        key = key.decode()
+        target: components.Base = self.components.get(key)
+        if target is not None:
+            target.write(msg)
+
+    def subscribe(self):
+        """subscribe to mqtt"""
+        self.mqtt_client.subscribe(self.command_topic, self.on_command)
+
     def yield_name(self, prefix):
         """make new names"""
         self.counter += 1
@@ -83,11 +95,16 @@ class Device(Model):
         if key in self.components:
             raise KeyError(f'duplicated key: {key}')
         self.components[key] = target
+        # set device info
         target.set_device(self)
+        # set value
+        self.value[key] = target.value
         target.raw_value = self.value
         target.value_path = key
+        # set topics
         target.state_topic = self.state_topic
         target.command_topic = self.command_topic
+        target.command_template = '%s;{{ value }}' % key
         return target
 
     def set_availability(self):
