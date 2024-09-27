@@ -1,6 +1,11 @@
 """
 Base class of components
 """
+try:
+    import uasyncio as asyncio
+except ImportError:
+    import asyncio
+
 from ..model import Model, Field, json
 from ..client import MQTTClient
 
@@ -13,6 +18,7 @@ class Base(Model):
     component_prefix = "component"
 
     name = Field("name")
+    device = Field("device")
     unique_id = Field("unique_id")
     state_topic = Field("state_topic")
     command_topic = Field("command_topic")
@@ -20,8 +26,9 @@ class Base(Model):
 
     availability_template = Field("availability_template")
     availability_topic = Field("availability_topic")
+    default_sleep_time = 10
 
-    def __init__(self, data=None, *, mqtt_client: MQTTClient, component_name=None,
+    def __init__(self, data=None, *, mqtt_client: MQTTClient = None, component_name=None,
                  node_id=None, obj_id=None):
         super().__init__(data)
         self.mqtt_client = mqtt_client
@@ -31,12 +38,16 @@ class Base(Model):
 
         self.value_cast = lambda x: x
         self.value_path = None
-        self._value = None
+        self.raw_value = None
 
     def set_name(self, name):
         """set name"""
         self.name = name
         return self
+
+    def set_device(self, device):
+        """set device"""
+        self.device = device.data
 
     def default_name(self):
         """generate a correct name based on info of self"""
@@ -77,7 +88,7 @@ class Base(Model):
         """build the value based on path"""
         if self.value_path is None:
             return "value"
-        return "value_json"
+        return f"value_json.{self.value_path}"
 
     def make_value_template(self):
         """generate a correct value_template based on info of self"""
@@ -114,7 +125,9 @@ class Base(Model):
             obj_id = self.unique_id
         topic += f'/{obj_id}'
         topic += '/config'
-        self.publish(topic, self.make_config_data(), retain, qos)
+        data = self.make_config_data()
+        data['object_id'] = obj_id
+        self.publish(topic, data, retain, qos)
 
     def online(self, is_online=True):
         """push availability"""
@@ -129,12 +142,17 @@ class Base(Model):
 
     def set_value(self, value):
         """set the value based on value_path"""
-        self._value = value
+        if self.value_path is None:
+            self.raw_value = value
+        else:
+            self.raw_value[self.value_path] = value
         return self
 
     def get_value(self):
         """get the value based on value_path"""
-        return self._value
+        if self.value_path is None:
+            return self.raw_value
+        return self.raw_value[self.value_path]
 
     @property
     def value(self):
@@ -147,17 +165,20 @@ class Base(Model):
 
     def push_state(self, retain=False, qos=0):
         """send the state"""
-        self.publish(self.state_topic, self._value, retain, qos)
+        self.publish(self.state_topic, self.raw_value, retain, qos)
 
-    def read(self):
+    async def read(self):
         """how to read the value"""
+        await asyncio.sleep(self.default_sleep_time)
 
     def set_reader(self, func):
         """set reader"""
         setattr(self, 'read', func)
         return func
 
-    def loop_step(self):
-        """loop_step"""
-        self.read()
-        self.push_state()
+    async def loop(self, push=True):
+        """read loop"""
+        while True:
+            await self.read()
+            if push:
+                self.push_state()

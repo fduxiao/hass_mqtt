@@ -101,6 +101,14 @@ class Model:
         self.data[key] = value
         return self
 
+    def update_data(self, *args, **kwargs):
+        """set through keyword args"""
+        for key, value in kwargs.items():
+            if value in args:
+                continue
+            self.data[key] = value
+        return self
+
 
 class Config(Model):
     """

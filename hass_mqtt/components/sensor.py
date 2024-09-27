@@ -12,7 +12,7 @@ class Sensor(Base):
     device_class = Field('device_class')
     unit_of_measurement = Field('unit_of_measurement')
 
-    def __init__(self, data=None, *, mqtt_client: MQTTClient,
+    def __init__(self, data=None, *, mqtt_client: MQTTClient = None,
                  node_id=None, obj_id=None):
         super().__init__(data, mqtt_client=mqtt_client,
                          component_name="sensor",
@@ -20,7 +20,7 @@ class Sensor(Base):
         self.value = 0
 
     def default_name(self):
-        return self.device_class
+        return self.default_device_class
 
     def make_config_data(self):
         if self.device_class is None:
@@ -39,4 +39,10 @@ class Temperature(Sensor):
 class Humidity(Sensor):
     """Temperature sensor"""
     default_device_class = "humidity"
+    default_unit_of_measurement = "%"
+
+
+class Battery(Sensor):
+    """Temperature sensor"""
+    default_device_class = "battery"
     default_unit_of_measurement = "%"
