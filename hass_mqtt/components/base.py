@@ -28,6 +28,11 @@ class Base(Model):
     availability_topic = Field("availability_topic")
     default_sleep_time = 10
 
+    @classmethod
+    def value_cast(cls, x):
+        """default value cast"""
+        return x
+
     def __init__(self, data=None, *, mqtt_client: MQTTClient = None, component_name=None,
                  node_id=None, obj_id=None):
         super().__init__(data)
@@ -36,7 +41,6 @@ class Base(Model):
         self.node_id = node_id
         self.obj_id = obj_id
 
-        self.value_cast = lambda x: x
         self.value_path = None
         self.raw_value = None
         self.availability_payload = 'online'
