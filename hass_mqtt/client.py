@@ -8,6 +8,11 @@ try:
 except ImportError:
     import asyncio
 
+try:
+    import ujson as json
+except ImportError:
+    import json
+
 
 try:
     from umqtt.robust import MQTTClient as _MQTTClient
@@ -131,6 +136,9 @@ class MQTTClient:
 
     def publish(self, topic, msg, retain=False, qos=0):
         """publish a message"""
+        if not isinstance(msg, bytes):
+            msg = json.dumps(msg)
+            msg = msg.encode()
         self.client.publish(topic, msg, retain, qos)
 
     def check_msg(self):

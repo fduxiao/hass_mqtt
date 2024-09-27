@@ -39,6 +39,7 @@ class Base(Model):
         self.value_cast = lambda x: x
         self.value_path = None
         self.raw_value = None
+        self.availability_payload = 'online'
 
     def set_name(self, name):
         """set name"""
@@ -134,7 +135,11 @@ class Base(Model):
         payload = 'offline'
         if is_online:
             payload = 'online'
-        self.publish(self.availability_topic, payload)
+        if isinstance(self.availability_payload, dict):
+            self.availability_payload[self.value_path] = payload
+        else:
+            self.availability_payload = payload
+        self.publish(self.availability_topic, self.availability_payload)
 
     def push_availability(self, state):
         """push availability"""

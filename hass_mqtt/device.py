@@ -65,6 +65,7 @@ class Device(Model):
         self.state_topic = None
         self.command_topic = None
         self.availability_topic = None
+        self.availability_payload = {}
 
     def yield_name(self, prefix):
         """make new names"""
@@ -89,12 +90,29 @@ class Device(Model):
         target.command_topic = self.command_topic
         return target
 
+    def set_availability(self):
+        """set availability"""
+        target: components.Base
+        for key, target in self.components.items():
+            target.availability_topic = self.availability_topic
+            target.availability_template = '{{ value_json.%s }}' % key
+            target.availability_payload = self.availability_payload
+
     def send_config(self, retain=False, qos=0):
         """send config"""
         target: components.Base
         for target in self.components.values():
             target.send_config(retain, qos)
         return self
+
+    def online(self, is_online=True):
+        """push availability"""
+        payload = 'offline'
+        if is_online:
+            payload = 'online'
+        for key in self.components:
+            self.availability_payload[key] = payload
+        self.mqtt_client.publish(self.availability_topic, self.availability_payload)
 
     def push_state(self, retain=False, qos=0):
         """push state"""
